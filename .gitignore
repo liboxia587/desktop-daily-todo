@@ -1,0 +1,39 @@
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ─── 虚拟环境 ───
+.venv/
+venv/
+env/
+
+# ─── PyInstaller 产物 ───
+build/
+dist/
+*.spec.bak
+*.manifest
+
+# ─── 用户机器配置（自动生成，不入库）───
+config.json
+
+# ─── 本地待办数据（隐私）───
+daily_todo/
+
+# ─── IDE / 编辑器 ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── 操作系统 ───
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── 临时文件 ───
+*.log
+*.tmp
