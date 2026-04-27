@@ -1,8 +1,25 @@
 # 🌤 Daily Todo · 桌面便签
 
-> 极简羊皮纸风格的 Windows 桌面待办便签 · 数据用 Markdown 存 · 完美兼容 Obsidian
+> **极简羊皮纸风格的 Windows 桌面待办便签 · 数据用 Markdown 存 · 完美兼容 Obsidian**
 
 每天早上贴在屏幕右上角，写一句口号、选一个心情 emoji、列三件要做的事——晚上看一眼勾掉，跨天自动归档。所有数据是普通的 `.md` 文件，可以丢进 Obsidian / VSCode / 任何编辑器搜索查阅。
+
+<p align="center">
+  <a href="https://github.com/liboxia587/desktop-daily-todo/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_%E4%B8%8B%E8%BD%BD%20DailyTodo.exe-%E5%8D%B3%E7%82%B9%E5%8D%B3%E7%94%A8-A87C4A?style=for-the-badge" alt="Download EXE"></a>
+  <a href="https://github.com/liboxia587/desktop-daily-todo/stargazers"><img src="https://img.shields.io/github/stars/liboxia587/desktop-daily-todo?style=for-the-badge&color=C75450" alt="Stars"></a>
+  <a href="https://github.com/liboxia587"><img src="https://img.shields.io/badge/Made%20by-Libo-7D92A8?style=for-the-badge&logo=github" alt="Made by Libo"></a>
+</p>
+
+> 🎯 **完全小白用法**：[点这里下载 EXE](https://github.com/liboxia587/desktop-daily-todo/releases/latest) → 双击运行 → 桌面右上角立刻出现便签
+> 🛠 **开发者用法**：见下方 [快速开始](#-快速开始) 章节
+
+---
+
+## 📸 截图
+
+<p align="center">
+  <img src="screenshot.png" alt="Daily Todo 运行截图" width="320">
+</p>
 
 ---
 
@@ -168,4 +185,17 @@ MIT © 2026 [Libo](https://github.com/liboxia587)
 - 视觉精致化 + 部署 + 心情抬头由 Claude Code 完成
 - 数据格式设计灵感来自 [Obsidian](https://obsidian.md) 的 frontmatter
 
-> "用 AI 协作，把闪过的小念头做成能用的东西。"
+> *"用 AI 协作，把闪过的小念头做成能用的东西。"*
+
+---
+
+## 👋 来找 Libo
+
+我是 **Libo** ([@liboxia587](https://github.com/liboxia587))，一个内容创业者 + 投资人 + AI 协作爱好者。
+
+- 🚀 **GitHub**: [github.com/liboxia587](https://github.com/liboxia587) — 我的所有 vibe coding 作品都在这
+- 📬 **联系**: 在仓库 [Issues](https://github.com/liboxia587/desktop-daily-todo/issues) 或 [Discussions](https://github.com/liboxia587/desktop-daily-todo/discussions) 找我
+
+如果这个便签让你的桌面变好用了一点点，**点个 ⭐ Star 让我开心一下**——也方便其他人发现它。
+
+🪄 **想要别的 vibe coding 小工具？** 关注 [我的 GitHub 主页](https://github.com/liboxia587)，新作品会陆续放出来。
