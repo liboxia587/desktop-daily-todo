@@ -189,13 +189,63 @@ class DataStore:
             print(f"[DataStore] 读取 metadata 失败: {filepath}, 错误: {e}")
         return result
 
-    def ensure_today_file(self) -> date:
-        """确保今天的文件存在，返回今天的日期"""
+    def ensure_today_file(self, carry_forward: bool = True) -> date:
+        """确保今天的文件存在，返回今天的日期。
+
+        若 carry_forward=True 且今天文件首次创建，
+        自动把最近一天的未完成项（- [ ]）带过来；
+        已完成项（- [x]）留在原文件不动。
+        """
         today = date.today()
         filepath = self._file_path(today)
-        if not os.path.exists(filepath):
-            self.save_todos(today, [])
+        if os.path.exists(filepath):
+            return today  # 已存在，不动
+
+        # 首次创建今天文件 → 尝试 carry forward
+        carried = []
+        if carry_forward:
+            previous_dates = [d for d in self.get_available_dates() if d < today]
+            if previous_dates:
+                most_recent = max(previous_dates)
+                prev_todos = self.load_todos(most_recent)
+                # 只带未完成的，重置 created_at 为今天
+                for t in prev_todos:
+                    if not t.done:
+                        t.created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                        carried.append(t)
+
+        self.save_todos(today, carried)
         return today
+
+    def merge_carry_forward(self, target_date: date = None) -> int:
+        """手动把最近一天的未完成项追加到目标日期文件末尾（去重）。
+        返回追加的条数。用于一次性补救：今天文件已存在但缺昨天未完成项。
+        """
+        if target_date is None:
+            target_date = date.today()
+
+        existing = self.load_todos(target_date)
+        existing_texts = {t.text for t in existing}
+
+        previous_dates = [d for d in self.get_available_dates() if d < target_date]
+        if not previous_dates:
+            return 0
+
+        most_recent = max(previous_dates)
+        prev_todos = self.load_todos(most_recent)
+
+        carried = []
+        for t in prev_todos:
+            if t.done:
+                continue
+            if t.text in existing_texts:
+                continue  # 去重
+            t.created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            carried.append(t)
+
+        if carried:
+            self.save_todos(target_date, existing + carried)
+        return len(carried)
 
     def get_available_dates(self) -> List[date]:
         """获取所有有记录的日期列表"""

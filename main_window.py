@@ -458,17 +458,38 @@ class MainWindow(QMainWindow):
         width = self.config.window_width
         height = self.config.window_height
 
-        if self.config.window_x is not None and self.config.window_y is not None:
-            self.setGeometry(self.config.window_x, self.config.window_y, width, height)
+        # 计算"主屏右上角"作为安全默认位置
+        primary = QApplication.primaryScreen()
+        if primary:
+            pg = primary.availableGeometry()
+            default_x = pg.right() - width - 20
+            default_y = pg.top() + 20
         else:
-            screen = QApplication.primaryScreen()
-            if screen:
-                screen_geo = screen.availableGeometry()
-                x = screen_geo.right() - width - 20
-                y = screen_geo.top() + 20
-                self.setGeometry(x, y, width, height)
-            else:
-                self.setGeometry(100, 100, width, height)
+            default_x, default_y = 100, 100
+
+        # 校验保存的位置是否仍在某个真实屏幕的可见范围内
+        # （防止外接副屏断开后，窗口飞到不存在的虚拟屏幕坐标 → 看不见）
+        saved_x = self.config.window_x
+        saved_y = self.config.window_y
+        position_valid = False
+        if saved_x is not None and saved_y is not None:
+            for s in QApplication.screens():
+                geo = s.availableGeometry()
+                # 至少要能看到窗口左上角的标题栏区域（>= 60px 在屏内）
+                if (geo.left() - 50 <= saved_x <= geo.right() - 60
+                        and geo.top() - 10 <= saved_y <= geo.bottom() - 60):
+                    position_valid = True
+                    break
+
+        if position_valid:
+            self.setGeometry(saved_x, saved_y, width, height)
+        else:
+            self.setGeometry(default_x, default_y, width, height)
+            # 顺手把无效位置擦掉，下次启动直接走默认（防止 config.json 里残留脏数据）
+            if saved_x is not None or saved_y is not None:
+                self.config.set("window_x", None)
+                self.config.set("window_y", None)
+                self.config.save()
 
         self.setMinimumSize(240, 300)
 
