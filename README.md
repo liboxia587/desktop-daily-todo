@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://github.com/liboxia587/desktop-daily-todo/releases/latest"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_%E4%B8%8B%E8%BD%BD%20DailyTodo.exe-%E5%8D%B3%E7%82%B9%E5%8D%B3%E7%94%A8-A87C4A?style=for-the-badge" alt="Download EXE"></a>
   <a href="https://github.com/liboxia587/desktop-daily-todo/stargazers"><img src="https://img.shields.io/github/stars/liboxia587/desktop-daily-todo?style=for-the-badge&color=C75450" alt="Stars"></a>
-  <a href="https://github.com/liboxia587"><img src="https://img.shields.io/badge/Made%20by-Libo-7D92A8?style=for-the-badge&logo=github" alt="Made by Libo"></a>
+  <a href="https://github.com/liboxia587"><img src="https://img.shields.io/badge/Made%20by-Libobo-7D92A8?style=for-the-badge&logo=github" alt="Made by Libobo"></a>
 </p>
 
 > 🎯 **完全小白用法**：[点这里下载 EXE](https://github.com/liboxia587/desktop-daily-todo/releases/latest) → 双击运行 → 桌面右上角立刻出现便签
@@ -174,7 +174,7 @@ desktop-daily-todo/
 
 ## 📜 License
 
-MIT © 2026 [Libo](https://github.com/liboxia587)
+MIT © 2026 [Libobo](https://github.com/liboxia587)
 
 ---
 
@@ -189,9 +189,9 @@ MIT © 2026 [Libo](https://github.com/liboxia587)
 
 ---
 
-## 👋 来找 Libo
+## 👋 来找 Libobo
 
-我是 **Libo** ([@liboxia587](https://github.com/liboxia587))，一个内容创业者 + 投资人 + AI 协作爱好者。
+我是 **Libobo** (昵称黑猫 🐈‍⬛, [@liboxia587](https://github.com/liboxia587))，一个内容创业者 + 投资人 + AI 协作爱好者。
 
 - 🚀 **GitHub**: [github.com/liboxia587](https://github.com/liboxia587) — 我的所有 vibe coding 作品都在这
 - 📬 **联系**: 在仓库 [Issues](https://github.com/liboxia587/desktop-daily-todo/issues) 或 [Discussions](https://github.com/liboxia587/desktop-daily-todo/discussions) 找我
