@@ -14,6 +14,7 @@ done: 2/5
 
 import os
 import re
+import shutil
 from datetime import datetime, date, timedelta
 from typing import List, Optional
 
@@ -80,13 +81,32 @@ class DataStore:
         os.makedirs(self.base_dir, exist_ok=True)
 
     def _file_path(self, target_date: date) -> str:
-        """获取指定日期的文件路径"""
+        """获取指定日期的文件路径(根目录,active 写入位置)"""
         filename = target_date.strftime("%Y-%m-%d") + ".md"
         return os.path.join(self.base_dir, filename)
 
+    def _archive_dir(self) -> str:
+        """归档子目录路径"""
+        return os.path.join(self.base_dir, "archive")
+
+    def _archive_path(self, target_date: date) -> str:
+        """归档后的文件路径"""
+        filename = target_date.strftime("%Y-%m-%d") + ".md"
+        return os.path.join(self._archive_dir(), filename)
+
+    def _resolve_path(self, target_date: date) -> str:
+        """优先根目录,其次 archive/(用于 read,如历史回看)"""
+        p = self._file_path(target_date)
+        if os.path.exists(p):
+            return p
+        p_arc = self._archive_path(target_date)
+        if os.path.exists(p_arc):
+            return p_arc
+        return self._file_path(target_date)  # 不存在时返回根路径
+
     def load_todos(self, target_date: date) -> List[TodoItem]:
-        """加载指定日期的待办列表"""
-        filepath = self._file_path(target_date)
+        """加载指定日期的待办列表(支持 archive/ 历史回看)"""
+        filepath = self._resolve_path(target_date)
         if not os.path.exists(filepath):
             return []
 
@@ -215,7 +235,43 @@ class DataStore:
                         carried.append(t)
 
         self.save_todos(today, carried)
+
+        # v1.2.0 · carry 完后,把根目录所有 < today 的旧文件移到 archive/
+        # 满足 Libo 诉求:第二天主目录干净,昨天完整内容(含 - [x])保留在 archive 留底
+        self._archive_old_files(today)
+
         return today
+
+    def _archive_old_files(self, today: date) -> int:
+        """把根目录所有日期 < today 的 .md 文件 move 到 archive/ 子目录。
+        返回归档的文件数。已在 archive/ 中的文件不重复处理。
+        """
+        if not os.path.exists(self.base_dir):
+            return 0
+        archive_dir = self._archive_dir()
+        moved = 0
+        for filename in os.listdir(self.base_dir):
+            match = re.match(r"^(\d{4}-\d{2}-\d{2})\.md$", filename)
+            if not match:
+                continue
+            try:
+                d = datetime.strptime(match.group(1), "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            if d >= today:
+                continue
+            src = os.path.join(self.base_dir, filename)
+            os.makedirs(archive_dir, exist_ok=True)
+            dst = os.path.join(archive_dir, filename)
+            if os.path.exists(dst):
+                # archive 已有同名文件(不应发生),跳过避免覆盖
+                continue
+            try:
+                shutil.move(src, dst)
+                moved += 1
+            except OSError as e:
+                print(f"[DataStore] 归档失败: {src} → {dst}, 错误: {e}")
+        return moved
 
     def merge_carry_forward(self, target_date: date = None) -> int:
         """手动把最近一天的未完成项追加到目标日期文件末尾（去重）。
@@ -248,22 +304,24 @@ class DataStore:
         return len(carried)
 
     def get_available_dates(self) -> List[date]:
-        """获取所有有记录的日期列表"""
-        dates = []
+        """获取所有有记录的日期列表(扫根目录 + archive/)"""
+        dates = set()
         if not os.path.exists(self.base_dir):
-            return dates
+            return []
 
-        for filename in os.listdir(self.base_dir):
-            match = re.match(r"^(\d{4}-\d{2}-\d{2})\.md$", filename)
-            if match:
-                try:
-                    d = datetime.strptime(match.group(1), "%Y-%m-%d").date()
-                    dates.append(d)
-                except ValueError:
-                    continue
+        for scan_dir in [self.base_dir, self._archive_dir()]:
+            if not os.path.exists(scan_dir):
+                continue
+            for filename in os.listdir(scan_dir):
+                match = re.match(r"^(\d{4}-\d{2}-\d{2})\.md$", filename)
+                if match:
+                    try:
+                        d = datetime.strptime(match.group(1), "%Y-%m-%d").date()
+                        dates.add(d)
+                    except ValueError:
+                        continue
 
-        dates.sort(reverse=True)
-        return dates
+        return sorted(dates, reverse=True)
 
     def get_week_stats(self, target_date: date) -> tuple:
         """

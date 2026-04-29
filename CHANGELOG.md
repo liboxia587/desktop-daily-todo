@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] — 2026-04-29
+
+### Added
+- **窗口边缘可拖动改尺寸** ⭐
+  - 鼠标放窗口 4 边或 4 角 → 自动变 resize cursor
+  - 拖动改宽高,实时响应
+  - 关闭/退出时自动保存到 `config.json`,下次启动恢复尺寸
+  - 8 px 边缘检测范围,minimum 240×300 防拖到看不见
+- **跨天自动归档昨天文件** ⭐
+  - 凌晨跨天 carry forward 完成后,把根目录所有 `< today` 的旧 .md 文件 **整文件移到** `daily_todo/archive/`
+  - 主目录始终干净:只看到今天.md + archive/ 子目录
+  - 已完成项 (`- [x]`) 完整保留在 archive 文件中(留底,不删)
+  - 历史日历回看自动扫 archive/,跨天后仍能查任意一天
+  - 已 archive 的文件不重复处理(防覆盖)
+
+### Changed
+- `DataStore.load_todos()` 增强:优先读根目录,其次 archive/(用于历史回看)
+- `DataStore.get_available_dates()` 增强:扫两处合并去重排序
+
+### Internal
+- 数据格式向后兼容,v1.0.x / v1.1.x 写的 `.md` 文件可直接被 v1.2.0 读取
+- 严格遵守 [AGENT.md 第七节第 4 条] 不删除任何文件原则:已完成项随昨天文件 archive 留底,**绝无物理删除**
+
+---
+
 ## [1.1.0] — 2026-04-28
 
 ### Added

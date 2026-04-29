@@ -8,7 +8,7 @@ import os
 from datetime import date, datetime, timedelta
 
 from PyQt6.QtCore import (
-    Qt, QPoint, QTimer, QSize, QDate, pyqtSignal, QRect
+    Qt, QPoint, QTimer, QSize, QDate, pyqtSignal, QRect, QEvent
 )
 from PyQt6.QtGui import (
     QFont, QColor, QIcon, QAction, QPainter, QPen,
@@ -438,11 +438,19 @@ class MainWindow(QMainWindow):
         self.current_mood = ""
         self.current_slogan = ""
 
+        # v1.2.0 · 边缘 resize 状态
+        self._resize_edge = None
+        self._resize_start_global = None
+        self._resize_start_geom = None
+
         self._setup_window()
         self._setup_ui()
         self._setup_tray()
         self._setup_midnight_timer()
         self._load_data()
+
+        # v1.2.0 · 装边缘 resize 监听(必须在 UI 建好之后)
+        QTimer.singleShot(0, self._install_edge_resize)
 
     def _setup_window(self):
         """配置窗口属性"""
@@ -1119,6 +1127,108 @@ class MainWindow(QMainWindow):
         self.is_viewing_history = False
         self.data_store.ensure_today_file()
         self._load_data()
+
+    # ─── v1.2.0 · 边缘 resize ─────────────────────────────
+
+    _RESIZE_MARGIN = 8
+    _CURSOR_MAP = {
+        'l': Qt.CursorShape.SizeHorCursor, 'r': Qt.CursorShape.SizeHorCursor,
+        't': Qt.CursorShape.SizeVerCursor, 'b': Qt.CursorShape.SizeVerCursor,
+        'tl': Qt.CursorShape.SizeFDiagCursor, 'br': Qt.CursorShape.SizeFDiagCursor,
+        'tr': Qt.CursorShape.SizeBDiagCursor, 'bl': Qt.CursorShape.SizeBDiagCursor,
+    }
+
+    def _install_edge_resize(self):
+        """安装 event filter 到所有 child widgets,使边缘 resize 跨子组件生效"""
+        self.setMouseTracking(True)
+        for w in self.findChildren(QWidget):
+            w.setMouseTracking(True)
+            w.installEventFilter(self)
+
+    def _check_edge(self, local_pos):
+        """局部坐标 → 边缘字符串('l'/'r'/'t'/'b'/'tl'/...) 或 None"""
+        x, y, w, h, m = local_pos.x(), local_pos.y(), self.width(), self.height(), self._RESIZE_MARGIN
+        on_l, on_r = x <= m, x >= w - m
+        on_t, on_b = y <= m, y >= h - m
+        if on_t and on_l: return 'tl'
+        if on_t and on_r: return 'tr'
+        if on_b and on_l: return 'bl'
+        if on_b and on_r: return 'br'
+        if on_l: return 'l'
+        if on_r: return 'r'
+        if on_t: return 't'
+        if on_b: return 'b'
+        return None
+
+    def eventFilter(self, obj, event):
+        et = event.type()
+        # 只处理鼠标事件
+        if et in (QEvent.Type.MouseMove, QEvent.Type.MouseButtonPress, QEvent.Type.MouseButtonRelease):
+            try:
+                gp = event.globalPosition().toPoint()
+            except AttributeError:
+                return super().eventFilter(obj, event)
+            local = self.mapFromGlobal(gp)
+
+            if et == QEvent.Type.MouseMove:
+                if self._resize_edge:
+                    # 正在 resize → 改 geometry
+                    self._do_resize(gp)
+                    return True
+                elif not event.buttons():
+                    # 未按键 → 检测边缘改 cursor
+                    edge = self._check_edge(local)
+                    if edge:
+                        self.setCursor(self._CURSOR_MAP[edge])
+                        return False  # 不消费,让 child 也能处理 hover
+                    else:
+                        self.unsetCursor()
+
+            elif et == QEvent.Type.MouseButtonPress and event.button() == Qt.MouseButton.LeftButton:
+                edge = self._check_edge(local)
+                if edge:
+                    self._resize_edge = edge
+                    self._resize_start_global = gp
+                    self._resize_start_geom = self.geometry()
+                    return True  # 消费,阻止 child 处理 click
+
+            elif et == QEvent.Type.MouseButtonRelease and self._resize_edge:
+                self._resize_edge = None
+                self.config.save_window_size(self.width(), self.height())
+                self.config.save_window_position(self.x(), self.y())
+                self.config.save()
+                return True
+
+        return super().eventFilter(obj, event)
+
+    def _do_resize(self, global_pos):
+        """根据 edge + 鼠标全局位置 改 geometry"""
+        g = self._resize_start_geom
+        sp = self._resize_start_global
+        dx, dy = global_pos.x() - sp.x(), global_pos.y() - sp.y()
+        nx, ny, nw, nh = g.x(), g.y(), g.width(), g.height()
+        edge = self._resize_edge
+        if 'l' in edge:
+            nx, nw = g.x() + dx, g.width() - dx
+        elif 'r' in edge:
+            nw = g.width() + dx
+        if 't' in edge:
+            ny, nh = g.y() + dy, g.height() - dy
+        elif 'b' in edge:
+            nh = g.height() + dy
+
+        # 应用 minimum 限制
+        min_w, min_h = self.minimumWidth(), self.minimumHeight()
+        if nw < min_w:
+            if 'l' in edge:
+                nx = g.x() + g.width() - min_w
+            nw = min_w
+        if nh < min_h:
+            if 't' in edge:
+                ny = g.y() + g.height() - min_h
+            nh = min_h
+
+        self.setGeometry(nx, ny, nw, nh)
 
     # ─── 窗口拖动 ───────────────────────────────────────
 
