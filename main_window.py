@@ -237,9 +237,14 @@ class TodoItemWidget(QFrame):
                 background-color: {HOVER_BG};
             }}
         """)
+        # v1.3.0 · 右键加"复制文本"
+        copy_action = menu.addAction("复制文本")
+        menu.addSeparator()
         delete_action = menu.addAction("删除")
         action = menu.exec(event.globalPos())
-        if action == delete_action:
+        if action == copy_action:
+            QApplication.clipboard().setText(self.item.text)
+        elif action == delete_action:
             self.deleted.emit()
 
 
@@ -609,25 +614,60 @@ class MainWindow(QMainWindow):
         self.back_btn.setVisible(False)
         header_layout.addWidget(self.back_btn)
 
-        # 最小化到托盘按钮
-        minimize_btn = QPushButton("—")
-        minimize_btn.setFont(QFont("Segoe UI", 12))
-        minimize_btn.setFixedSize(28, 28)
-        minimize_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-        minimize_btn.setStyleSheet(f"""
+        # v1.3.0 · 右上角 3 个按钮: 缩小 / 扩大 / 关掉
+        btn_base_style = f"""
             QPushButton {{
                 color: {TEXT_SECONDARY};
                 background: transparent;
                 border: none;
                 border-radius: 14px;
+                font-size: 13px;
             }}
             QPushButton:hover {{
                 background-color: {HOVER_BG};
                 color: {TEXT_PRIMARY};
             }}
-        """)
+        """
+        btn_close_style = f"""
+            QPushButton {{
+                color: {TEXT_SECONDARY};
+                background: transparent;
+                border: none;
+                border-radius: 14px;
+                font-size: 14px;
+            }}
+            QPushButton:hover {{
+                background-color: #C75450;
+                color: white;
+            }}
+        """
+
+        # 缩小(最小化到托盘)
+        minimize_btn = QPushButton("—")
+        minimize_btn.setFixedSize(28, 28)
+        minimize_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        minimize_btn.setStyleSheet(btn_base_style)
+        minimize_btn.setToolTip("缩小到托盘")
         minimize_btn.clicked.connect(self._minimize_to_tray)
         header_layout.addWidget(minimize_btn)
+
+        # 扩大(toggle 最大化)
+        self.maximize_btn = QPushButton("☐")
+        self.maximize_btn.setFixedSize(28, 28)
+        self.maximize_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        self.maximize_btn.setStyleSheet(btn_base_style)
+        self.maximize_btn.setToolTip("扩大 / 还原")
+        self.maximize_btn.clicked.connect(self._toggle_maximize)
+        header_layout.addWidget(self.maximize_btn)
+
+        # 关闭(隐藏到托盘,不退出 — per Libo 'A' 决议)
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(28, 28)
+        close_btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+        close_btn.setStyleSheet(btn_close_style)
+        close_btn.setToolTip("关闭(隐藏到托盘,按 Ctrl+Alt+N 唤回)")
+        close_btn.clicked.connect(self._minimize_to_tray)
+        header_layout.addWidget(close_btn)
 
         parent_layout.addWidget(header)
 
@@ -1252,6 +1292,17 @@ class MainWindow(QMainWindow):
         """最小化到托盘"""
         self._save_position()
         self.hide()
+
+    def _toggle_maximize(self):
+        """v1.3.0 · 扩大 / 还原"""
+        if self.isMaximized():
+            self.showNormal()
+            self.maximize_btn.setText("☐")
+            self.maximize_btn.setToolTip("扩大")
+        else:
+            self.showMaximized()
+            self.maximize_btn.setText("❐")
+            self.maximize_btn.setToolTip("还原")
 
     def _show_window(self):
         """从托盘恢复显示"""
