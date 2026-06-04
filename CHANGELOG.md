@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.1] — 2026-04-29
+
+### Fixed
+- **Hotkey 焦点误触 bug** ⭐
+  - 之前:pynput 在窗口切换 / 输入法切换时可能漏收 modifier release 事件 → Ctrl/Alt 卡在 "_pressed_keys" → 单按 'n'(比如打拼音 zhong)就被误判为 `Ctrl+Alt+N` 唤出热键 → 焦点抢到便签输入框
+  - 修法:`hotkey.py` 触发 n 时用 Win32 `GetAsyncKeyState` API 二次验证 Ctrl + Alt 真的物理按着,否则清理脏状态不触发
+  - 影响:用户在其他 App(Claude / 微信 / VSCode...)打字时,便签不再"莫名其妙抢焦点"
+
+### Added
+- **Todo 条目右键加"编辑"** ⭐
+  - 右键 todo → 菜单:✏️ 编辑 / 📋 复制文本 / 🗑 删除
+  - 点 ✏️ 编辑 → 该行文字变 inline QLineEdit(在原位置可改)
+  - **Enter / 点击别处** 保存 / **Esc** 取消
+  - 修改后立即写入 markdown 文件
+  - 已完成项 (`- [x]`) 也可编辑
+
+### Internal
+- `TodoItemWidget` 加 `edited` pyqtSignal
+- 新 `_start_edit / _finish_edit / _cancel_edit / _cleanup_edit` 4 个方法
+- MainWindow `_edit_todo()` handler 连接信号 → 调 `_save_data()`
+
+---
+
 ## [1.3.0] — 2026-04-29
 
 ### Added

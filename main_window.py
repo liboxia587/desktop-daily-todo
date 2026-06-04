@@ -106,6 +106,7 @@ class TodoItemWidget(QFrame):
     toggled = pyqtSignal()
     deleted = pyqtSignal()
     priority_changed = pyqtSignal()
+    edited = pyqtSignal()  # v1.3.1 · 内容编辑后触发
 
     def __init__(self, item: TodoItem, readonly: bool = False, parent=None):
         super().__init__(parent)
@@ -237,15 +238,91 @@ class TodoItemWidget(QFrame):
                 background-color: {HOVER_BG};
             }}
         """)
-        # v1.3.0 · 右键加"复制文本"
-        copy_action = menu.addAction("复制文本")
+        # v1.3.1 · 加"编辑" / v1.3.0 · "复制文本"
+        edit_action = menu.addAction("✏️  编辑")
+        copy_action = menu.addAction("📋  复制文本")
         menu.addSeparator()
-        delete_action = menu.addAction("删除")
+        delete_action = menu.addAction("🗑  删除")
         action = menu.exec(event.globalPos())
-        if action == copy_action:
+        if action == edit_action:
+            self._start_edit()
+        elif action == copy_action:
             QApplication.clipboard().setText(self.item.text)
         elif action == delete_action:
             self.deleted.emit()
+
+    # ─── v1.3.1 · inline 编辑 ─────────────────────────────
+
+    def _start_edit(self):
+        """进入编辑模式:text_label 替换成 QLineEdit"""
+        if self.readonly or hasattr(self, '_edit_field'):
+            return
+        # 隐藏 text_label
+        self.text_label.hide()
+        # 创建 inline QLineEdit
+        from PyQt6.QtWidgets import QLineEdit
+        self._edit_field = QLineEdit(self.item.text)
+        self._edit_field.setFont(self.text_label.font())
+        self._edit_field.setStyleSheet(f"""
+            QLineEdit {{
+                color: {TEXT_PRIMARY};
+                background: {INPUT_BG};
+                border: 1px solid {ACCENT};
+                border-radius: 4px;
+                padding: 2px 6px;
+            }}
+        """)
+        self._edit_field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        # 插入到 text_label 同位置
+        layout = self.layout()
+        idx = layout.indexOf(self.text_label)
+        layout.insertWidget(idx, self._edit_field)
+        self._edit_field.selectAll()
+        self._edit_field.setFocus()
+
+        # 信号连接
+        self._edit_field.returnPressed.connect(self._finish_edit)
+        # editingFinished 在失去焦点 / Enter / Tab 时触发
+        self._edit_field.editingFinished.connect(self._finish_edit)
+
+        # Esc 取消
+        original_key_press = self._edit_field.keyPressEvent
+        def custom_key_press(event):
+            if event.key() == Qt.Key.Key_Escape:
+                self._cancel_edit()
+            else:
+                original_key_press(event)
+        self._edit_field.keyPressEvent = custom_key_press
+
+    def _finish_edit(self):
+        """保存编辑结果"""
+        if not hasattr(self, '_edit_field'):
+            return
+        new_text = self._edit_field.text().strip()
+        changed = new_text and new_text != self.item.text
+        if changed:
+            self.item.text = new_text
+            self.text_label.setText(new_text)
+        self._cleanup_edit()
+        if changed:
+            self.edited.emit()
+
+    def _cancel_edit(self):
+        """取消编辑(Esc)"""
+        self._cleanup_edit()
+
+    def _cleanup_edit(self):
+        """清理编辑状态"""
+        if not hasattr(self, '_edit_field'):
+            return
+        # 防止 editingFinished 重入
+        try:
+            self._edit_field.editingFinished.disconnect()
+        except (TypeError, RuntimeError):
+            pass
+        self._edit_field.deleteLater()
+        del self._edit_field
+        self.text_label.show()
 
 
 class HistoryDialog(QDialog):
@@ -1066,6 +1143,11 @@ class MainWindow(QMainWindow):
         if 0 <= index < len(self.todos):
             self._save_data()
 
+    def _edit_todo(self, index: int):
+        """v1.3.1 · 编辑 todo 文本(text 已在 widget._finish_edit 里更新到 self.item)"""
+        if 0 <= index < len(self.todos):
+            self._save_data()
+
     def _delete_todo(self, index: int):
         """删除待办"""
         if 0 <= index < len(self.todos):
@@ -1118,6 +1200,7 @@ class MainWindow(QMainWindow):
             widget.toggled.connect(lambda idx=i: self._toggle_todo(idx))
             widget.deleted.connect(lambda idx=i: self._delete_todo(idx))
             widget.priority_changed.connect(lambda idx=i: self._change_priority(idx))
+            widget.edited.connect(lambda idx=i: self._edit_todo(idx))  # v1.3.1
             self.todo_layout.insertWidget(self.todo_layout.count() - 1, widget)
 
         # 空状态提示
